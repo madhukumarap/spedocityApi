@@ -1,0 +1,39 @@
+{
+  "name": "spedocityapi",
+  "version": "1.0.0",
+  "description": "spedocityapi",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/madhukumarap/spedocityApi.git"
+  },
+  "author": "madhu",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/madhukumarap/spedocityApi/issues"
+  },
+  "homepage": "https://github.com/madhukumarap/spedocityApi#readme",
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "body-parser": "^2.2.0",
+    "compression": "^1.8.1",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.2",
+    "express": "^5.1.0",
+    "express-rate-limit": "^8.1.0",
+    "fs": "^0.0.1-security",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.1",
+    "mysql2": "^3.15.0",
+    "nodemon": "^3.1.10",
+    "path": "^0.12.7",
+    "twilio": "^5.10.0",
+    "uuid": "^13.0.0",
+    "winston": "^3.17.0"
+  }
+}
