@@ -36,7 +36,7 @@ setInterval(() => {
   }
   
   if (expiredCount > 0) {
-    logger.debug('Cleaned up expired OTP sessions', { count: expiredCount });
+    logger.info('Cleaned up expired OTP sessions', { count: expiredCount });
   }
 }, 60 * 60 * 1000); // Cleanup every hour
 
@@ -115,7 +115,7 @@ const authentication = async (req, res) => {
       [userId, otp, expiresAt]
     );
 
-    logger.debug('OTP stored in database', { 
+    logger.info('OTP stored in database', { 
       requestId, 
       userId, 
       otp: '***' // Don't log actual OTP in production
@@ -131,7 +131,7 @@ const authentication = async (req, res) => {
       expiresAt: sessionExpiresAt
     });
 
-    logger.debug('OTP session created', { 
+    logger.info('OTP session created', { 
       requestId, 
       sessionId, 
       userId, 
@@ -191,7 +191,7 @@ const authentication = async (req, res) => {
     return res.status(500).json({ message: "Internal server error" });
   } finally {
     const duration = Date.now() - startTime;
-    logger.debug('Authentication request processed', { 
+    logger.info('Authentication request processed', { 
       requestId, 
       durationMs: duration 
     });
@@ -269,7 +269,7 @@ const verifyOTP = async (req, res) => {
       [otpRecord.otp_id]
     );
 
-    logger.debug('OTP marked as used', { 
+    logger.info('OTP marked as used', { 
       requestId, 
       userId, 
       otpId: otpRecord.otp_id 
@@ -321,7 +321,7 @@ const verifyOTP = async (req, res) => {
     });
   } finally {
     const duration = Date.now() - startTime;
-    logger.debug('OTP verification request processed', { 
+    logger.info('OTP verification request processed', { 
       requestId, 
       durationMs: duration 
     });
@@ -373,7 +373,7 @@ const resendOTP = async (req, res) => {
       [userId, otp, expiresAt]
     );
 
-    logger.debug('New OTP stored for resend', { 
+    logger.info('New OTP stored for resend', { 
       requestId, 
       userId, 
       sessionId 
@@ -421,7 +421,7 @@ const resendOTP = async (req, res) => {
     return res.status(500).json({ message: "Internal server error" });
   } finally {
     const duration = Date.now() - startTime;
-    logger.debug('Resend OTP request processed', { 
+    logger.info('Resend OTP request processed', { 
       requestId, 
       durationMs: duration 
     });
@@ -440,7 +440,7 @@ const logout = async (req, res) => {
     
     if (token) {
       auth.invalidateToken(token);
-      logger.debug('Token invalidated', { requestId });
+      logger.info('Token invalidated', { requestId });
     }
     
     res.status(200).json({ message: "Logout successful" });
@@ -453,7 +453,7 @@ const logout = async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   } finally {
     const duration = Date.now() - startTime;
-    logger.debug('Logout request processed', { 
+    logger.info('Logout request processed', { 
       requestId, 
       durationMs: duration 
     });
