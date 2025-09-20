@@ -49,7 +49,7 @@ const userAuthRoutes = require('./routes/userRoutes/userAuthRoute');
 app.use(userAuthRoutes);
 
 // Health check endpoint
-app.get('/sepdocity/health', (req, res) => {
+app.get('/spedocity/health', (req, res) => {
   logger.info('Health check requested');
   res.status(200).json({ 
     message: "Server is running",
