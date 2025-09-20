@@ -51,15 +51,19 @@ const initDatabase = () => {
           
           // Create users table if it doesn't exist
           const createTableQuery = `
-            CREATE TABLE  IF NOT EXISTS users (
-            user_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-            mobile_number VARCHAR(15) NOT NULL UNIQUE,
-            country_code VARCHAR(5) DEFAULT '+91',
-            is_verified BOOLEAN DEFAULT FALSE,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-          ) `;
-          
+            CREATE TABLE IF NOT EXISTS users (
+    user_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    mobile_number VARCHAR(15) NOT NULL,
+    country_code VARCHAR(5) DEFAULT '+91',
+    is_verified TINYINT(1) DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id),
+    UNIQUE KEY unique_mobile (mobile_number),
+    KEY idx_mobile_verified (mobile_number, is_verified),
+    KEY idx_created_at (created_at)
+) ENGINE=InnoDB ROW_FORMAT=COMPRESSED KEY_BLOCK_SIZE=8;
+`;
           connection.query(createTableQuery, (err) => {
             connection.release();
             if (err) {
@@ -67,6 +71,67 @@ const initDatabase = () => {
             }
             
             console.log('Users table is ready!');
+            resolve();
+          });
+          const createTableotp = `CREATE TABLE IF NOT EXISTS otps (
+    otp_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    user_id BIGINT UNSIGNED NOT NULL,
+    otp_code VARCHAR(10) NOT NULL,
+    is_used TINYINT(1) DEFAULT 0,
+    expires_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (otp_id),
+    KEY idx_user_id (user_id),
+    KEY idx_expires_at (expires_at),
+    KEY idx_created_at (created_at)
+) ENGINE=InnoDB;
+`;
+          connection.query(createTableotp, (err) => {
+            connection.release();
+            if (err) {
+              return reject(err);
+            }
+            
+            console.log('createTableotp table is ready!');
+            resolve();
+          });
+          const createTableOtpArchive = `CREATE TABLE IF NOT EXISTS otps_archive (
+    otp_id BIGINT UNSIGNED NOT NULL,
+    user_id BIGINT UNSIGNED NOT NULL,
+    otp_code VARCHAR(10) NOT NULL,
+    is_used TINYINT(1) DEFAULT 0,
+    expires_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP,
+    archive_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (otp_id, archive_date),
+    KEY idx_archive_date (archive_date)
+) ENGINE=InnoDB;
+`;
+          connection.query(createTableOtpArchive, (err) => {
+            connection.release();
+            if (err) {
+              return reject(err);
+            }
+            
+            console.log('createTableOtpArchive table is ready!');
+            resolve();
+          });
+          const createTableblacklisted_tokens = `CREATE TABLE IF NOT EXISTS blacklisted_tokens (
+    token_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    token VARCHAR(500) NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (token_id),
+    KEY idx_token (token(64)),
+    KEY idx_expires_at (expires_at)
+) ENGINE=InnoDB`;
+          connection.query(createTableblacklisted_tokens, (err) => {
+            connection.release();
+            if (err) {
+              return reject(err);
+            }
+            
+            console.log('createTableblacklisted_tokens table is ready!');
             resolve();
           });
         });
