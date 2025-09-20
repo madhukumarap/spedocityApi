@@ -2,11 +2,20 @@ const winston = require('winston');
 const path = require('path');
 const fs = require('fs');
 
-// Create logs directory if it doesn't exist
-const logsDir = path.join(__dirname, '../logs');
-if (!fs.existsSync(logsDir)) {
-  fs.mkdirSync(logsDir, { recursive: true });
-}
+// Build a dated logs folder like logs/20-09-2025
+const now = new Date();
+const day = String(now.getDate()).padStart(2, '0');
+const month = String(now.getMonth() + 1).padStart(2, '0');
+const year = now.getFullYear();
+
+// base logs dir
+const baseLogsDir = path.join(__dirname, '../logs');
+// folder name: 20-09-2025
+const datedFolder = `${day}-${month}-${year}`;
+const logsDir = path.join(baseLogsDir, datedFolder);
+
+// Make sure directory exists
+fs.mkdirSync(logsDir, { recursive: true });
 
 // Define log format
 const logFormat = winston.format.combine(
@@ -69,7 +78,7 @@ logger.stream = {
   },
 };
 
-// Helper methods for different log types
+// Helper methods
 logger.infoLog = (message, meta = {}) => {
   logger.info(message, meta);
 };
@@ -95,8 +104,7 @@ logger.accessLog = (req, res, responseTime = null) => {
     responseTime: responseTime ? `${responseTime}ms` : null,
     userId: req.user ? req.user.id : 'anonymous',
   };
-  
-  // Log as info for successful requests, warning for client errors, error for server errors
+
   if (res.statusCode < 400) {
     logger.info('HTTP Access', meta);
   } else if (res.statusCode < 500) {
@@ -106,14 +114,13 @@ logger.accessLog = (req, res, responseTime = null) => {
   }
 };
 
-// Database query logger
 logger.dbLog = (query, parameters, executionTime, error = null) => {
   const meta = {
     query: query,
     parameters: parameters,
     executionTime: `${executionTime}ms`,
   };
-  
+
   if (error) {
     meta.error = {
       message: error.message,
