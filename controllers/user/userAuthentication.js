@@ -55,8 +55,8 @@ const authentication = async (req, res) => {
   const requestId = Math.random().toString(36).substring(2, 10);
   
   try {
-    const { number } = req.body;
-    
+    const { number, } = req.body;
+
     logger.info('Authentication request received', { 
       requestId, 
       mobileNumber: number 
@@ -82,7 +82,6 @@ const authentication = async (req, res) => {
       'SELECT * FROM users WHERE mobile_number = ?',
       [number]
     );
-
     let userId;
     if (users.length === 0) {
       // Create new user with mobile number
@@ -93,14 +92,13 @@ const authentication = async (req, res) => {
         [number]
       );
       userId = result.insertId;
-      
       logger.info('New user created', { 
         requestId, 
         userId, 
         mobileNumber: number 
       });
     } else {
-      userId = users[0].id;
+      userId = users[0].user_id;
       logger.info('Existing user found', { 
         requestId, 
         userId, 
@@ -111,7 +109,6 @@ const authentication = async (req, res) => {
     // Generate OTP
     const otp = generateOTP();
     const expiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
-
     // Store OTP in database
     await promisePool.execute(
       'INSERT INTO otps (user_id, otp_code, expires_at) VALUES (?, ?, ?)',
@@ -215,7 +212,10 @@ const verifyOTP = async (req, res) => {
     
     if (!sessionId || !otp) {
       logger.warn('Missing sessionId or OTP in verification request', { requestId });
-      return res.status(400).json({ message: "Session ID and OTP are required" });
+      return res.status(400).json({ 
+        success: false,
+        message: "Session ID and OTP are required" 
+      });
     }
 
     // Get session data
@@ -223,22 +223,28 @@ const verifyOTP = async (req, res) => {
     
     if (!session) {
       logger.warn('Invalid session ID provided', { requestId, sessionId });
-      return res.status(404).json({ message: "Invalid or expired session" });
+      return res.status(404).json({ 
+        success: false,
+        message: "Invalid or expired session" 
+      });
     }
 
     // Check if session expired
     if (session.expiresAt < Date.now()) {
       otpSessions.delete(sessionId);
       logger.warn('Expired session ID provided', { requestId, sessionId });
-      return res.status(401).json({ message: "Session expired. Please request a new OTP." });
+      return res.status(401).json({ 
+        success: false,
+        message: "Session expired. Please request a new OTP." 
+      });
     }
 
-    const { userId, mobileNumber } = session;
+    const { userId, mobileNumber, countryCode } = session;
 
     // Find valid OTP for this user
     const [otps] = await promisePool.execute(
       `SELECT * FROM otps 
-       WHERE user_id = ? AND otp_code = ? AND is_used = FALSE AND expires_at > NOW()
+       WHERE user_id = ? AND otp_code = ? AND is_used = 0 AND expires_at > NOW()
        ORDER BY created_at DESC LIMIT 1`,
       [userId, otp]
     );
@@ -249,22 +255,31 @@ const verifyOTP = async (req, res) => {
         userId, 
         sessionId 
       });
-      return res.status(401).json({ message: "Invalid or expired OTP" });
+      return res.status(401).json({ 
+        success: false,
+        message: "Invalid or expired OTP" 
+      });
     }
 
     const otpRecord = otps[0];
 
     // Mark OTP as used
     await promisePool.execute(
-      'UPDATE otps SET is_used = TRUE WHERE id = ?',
-      [otpRecord.id]
+      'UPDATE otps SET is_used = 1 WHERE otp_id = ?',
+      [otpRecord.otp_id]
     );
 
     logger.debug('OTP marked as used', { 
       requestId, 
       userId, 
-      otpId: otpRecord.id 
+      otpId: otpRecord.otp_id 
     });
+
+    // Update user verification status
+    await promisePool.execute(
+      'UPDATE users SET is_verified = 1 WHERE user_id = ?',
+      [userId]
+    );
 
     // Generate JWT token
     const token = auth.createToken({ 
@@ -281,11 +296,17 @@ const verifyOTP = async (req, res) => {
       sessionId 
     });
 
+    // STANDARDIZED RESPONSE FORMAT
     res.status(200).json({
+      success: true,
       message: "OTP verified successfully",
-      token: token,
-      userId: userId,
-      mobile_number: mobileNumber
+      data: {
+        token: token,
+        user_id: userId,
+        mobile_number: mobileNumber,
+        country_code: countryCode || '+91',
+        is_verified: true
+      }
     });
 
   } catch (error) {
@@ -294,7 +315,10 @@ const verifyOTP = async (req, res) => {
       error: error.message,
       stack: error.stack 
     });
-    return res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({ 
+      success: false,
+      message: "Internal server error" 
+    });
   } finally {
     const duration = Date.now() - startTime;
     logger.debug('OTP verification request processed', { 

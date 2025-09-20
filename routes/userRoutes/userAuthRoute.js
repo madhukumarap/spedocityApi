@@ -22,7 +22,7 @@ router.use('/sepdocity/verify-otp', otpLimiter);
 router.use('/sepdocity/resend-otp', otpLimiter);
 
 // Routes
-router.post('/sepdocity/send-otp', authentication); // Send OTP
+router.post('/sepdocity/send-otp', authentication); 
 router.post('/sepdocity/verify-otp', verifyOTP); // Verify OTP
 router.post('/sepdocity/resend-otp', resendOTP); // Resend OTP
 router.post('/sepdocity/logout', auth.verifyToken, logout); // Logout
