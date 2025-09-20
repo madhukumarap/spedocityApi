@@ -17,14 +17,14 @@ const otpLimiter = rateLimit({
 });
 
 // Apply rate limiting to OTP routes
-router.use('/sepdocity/send-otp', otpLimiter);
-router.use('/sepdocity/verify-otp', otpLimiter);
-router.use('/sepdocity/resend-otp', otpLimiter);
+router.use('/spedocity/send-otp', otpLimiter);
+router.use('/spedocity/verify-otp', otpLimiter);
+router.use('/spedocity/resend-otp', otpLimiter);
 
 // Routes
-router.post('/sepdocity/send-otp', authentication); 
-router.post('/sepdocity/verify-otp', verifyOTP); // Verify OTP
-router.post('/sepdocity/resend-otp', resendOTP); // Resend OTP
-router.post('/sepdocity/logout', auth.verifyToken, logout); // Logout
+router.post('/spedocity/send-otp', authentication); 
+router.post('/spedocity/verify-otp', verifyOTP); // Verify OTP
+router.post('/spedocity/resend-otp', resendOTP); // Resend OTP
+router.post('/spedocity/logout', auth.verifyToken, logout); // Logout
 
 module.exports = router;
