@@ -103,3 +103,21 @@ ON SCHEDULE EVERY 1 DAY
 STARTS CURRENT_TIMESTAMP
 DO
     CALL clean_expired_data();
+
+CREATE TABLE karnataka (
+  karnataka_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NOT NULL,
+  district_name VARCHAR(100) NOT NULL,
+  taluk_name VARCHAR(100),
+  hobai_name  VARCHAR(100),
+  pin_code BIGINT UNSIGNED NOT NULL,
+  address TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (karnataka_id),
+  KEY idx_user_id (user_id), -- Index for faster lookup
+  KEY  idx_district_name (district_name),
+  CONSTRAINT fk_karnataka_user FOREIGN KEY (user_id) REFERENCES users(user_id)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE
+) ENGINE=InnoDB;
