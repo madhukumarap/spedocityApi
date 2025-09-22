@@ -1,6 +1,6 @@
 const express = require('express');
 const rateLimit = require('express-rate-limit');
-const { authentication, verifyOTP, resendOTP, logout } = require('../../controllers/user/userAuthentication');
+const { authentication, verifyOTP, resendOTP, logout, updateProfile, getUserInfo } = require('../../controllers/user/userAuthentication');
 const auth = require('../../middleware/authMiddleware');
 
 const router = express.Router();
@@ -26,5 +26,6 @@ router.post('/spedocity/send-otp', authentication);
 router.post('/spedocity/verify-otp', verifyOTP); // Verify OTP
 router.post('/spedocity/resend-otp', resendOTP); // Resend OTP
 router.post('/spedocity/logout', auth.verifyToken, logout); // Logout
-
+router.post('/spedocity/update-profile', auth.verifyToken, updateProfile);
+router.get('/spedocity/get-user-info', auth.verifyToken, getUserInfo)
 module.exports = router;
