@@ -6,7 +6,7 @@ const DB_NAME = process.env.DB_NAME || 'spedocity';
 const pool = mysql.createPool({
   host: process.env.DB_HOST || 'localhost',
   user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '1234',
+  password: process.env.DB_PASSWORD || 'Sahana@12',
   database: DB_NAME, // Specify database here to avoid warnings
   connectionLimit: process.env.DB_CONNECTION_LIMIT || 20,
   acquireTimeout: 60000, // This should be valid for createPool
