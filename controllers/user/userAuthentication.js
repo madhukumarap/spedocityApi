@@ -459,10 +459,173 @@ const logout = async (req, res) => {
     });
   }
 };
+const updateProfile = async (req, res) => {
+  const startTime = Date.now();
+  const requestId = Math.random().toString(36).substring(2, 10);
+  
+  try {
+    const { name, email, dateOfBirth, gender, userId } = req.body;
 
+    // Validate required fields
+    if (!userId) {
+      logger.warn('User ID is required', { requestId });
+      return res.status(400).json({ message: "User ID is required" });
+    }
+
+    // Validate that at least one field is provided for update
+    if (!name && !email && !dateOfBirth && !gender) {
+      logger.warn('No profile data provided for update', { requestId, userId });
+      return res.status(400).json({ message: "At least one profile field is required" });
+    }
+
+    // Check if profile exists
+    const findQuery = `SELECT * FROM user_info WHERE user_id = ?`;
+    const [existingProfiles] = await promisePool.execute(findQuery, [userId]);
+    
+    // Use proper MySQL datetime format
+    const currentTime = new Date();
+    const formattedDateOfBirth = dateOfBirth ? new Date(dateOfBirth) : null;
+
+    if (existingProfiles.length > 0) {
+      // Update existing profile
+      logger.info('Updating existing profile', { requestId, userId });
+      
+      // Build dynamic update query based on provided fields
+      const updateFields = [];
+      const updateValues = [];
+      
+      if (name) {
+        updateFields.push('full_name = ?');
+        updateValues.push(name);
+      }
+      if (email) {
+        updateFields.push('email = ?');
+        updateValues.push(email);
+      }
+      if (dateOfBirth) {
+        updateFields.push('date_of_birth = ?');
+        updateValues.push(formattedDateOfBirth);
+      }
+      if (gender) {
+        updateFields.push('gender = ?');
+        updateValues.push(gender);
+      }
+      
+      // Always update the updated_at timestamp
+      updateFields.push('updated_at = ?');
+      updateValues.push(currentTime);
+      
+      // Add userId for WHERE clause
+      updateValues.push(userId);
+      
+      const updateSql = `UPDATE user_info SET ${updateFields.join(', ')} WHERE user_id = ?`;
+      
+      const [result] = await promisePool.execute(updateSql, updateValues);
+      
+      if (result.affectedRows === 1) {
+        logger.info('Profile updated successfully', { requestId, userId });
+        return res.status(200).json({ success:true, message: "Profile updated successfully" });
+      } else {
+        logger.warn('Profile update failed - no rows affected', { requestId, userId });
+        return res.status(400).json({ message: "Profile update failed" });
+      }
+    } else {
+      // Create new profile - validate that all required fields are present for new profile
+      if (!name) {
+        logger.warn('Name is required for new profile', { requestId, userId });
+        return res.status(400).json({ message: "Name is required for new profile" });
+      }
+
+      logger.info('Creating new profile', { requestId, userId });
+      
+      const insertSql = `INSERT INTO user_info (user_id, full_name, email, date_of_birth, gender, created_at, updated_at)
+                         VALUES (?, ?, ?, ?, ?, ?, ?)`;
+      
+      const values = [userId, name, email, formattedDateOfBirth, gender, currentTime, currentTime];
+      
+      const [result] = await promisePool.execute(insertSql, values);
+      
+      if (result.affectedRows === 1) {
+        logger.info('Profile created successfully', { requestId, userId });
+        return res.status(200).json({success:true, message: "Profile created successfully" });
+      } else {
+        logger.warn('Profile creation failed', { requestId, userId });
+        return res.status(400).json({ message: "Profile creation failed" });
+      }
+    }
+  } catch (error) {
+    logger.error('Update profile process failed', { 
+      service: "spedocity-api",
+      requestId, 
+      error: error.message, 
+      stack: error.stack
+    });
+    
+    // Handle specific MySQL errors
+    if (error.code === 'ER_NO_SUCH_TABLE') {
+      return res.status(500).json({ message: "Database configuration error - table not found" });
+    } else if (error.code === 'ER_DUP_ENTRY') {
+      return res.status(409).json({ message: "Profile already exists for this user" });
+    } else if (error.code === 'ER_TRUNCATED_WRONG_VALUE') {
+      return res.status(400).json({ message: "Invalid date format" });
+    } else if (error.code === 'ER_DATA_TOO_LONG') {
+      return res.status(400).json({ message: "Data too long for one or more fields" });
+    }
+    
+    return res.status(500).json({ message: "Internal server error" });
+  }  
+};
+const getUserInfo = async (req, res) => {
+  try {
+    const userId = req.query.userId;
+    
+    // Validate userId
+    if (!userId) {
+      logger.error('User ID is required');
+      return res.status(400).json({
+        success: false,
+        message: 'User ID is required'
+      });
+    }
+
+    logger.info(`The requestID for USER_INFO IS ${userId}`);
+    
+    const user_info = `SELECT * FROM USER_INFO WHERE USER_ID = ?`;
+    const [result] = await promisePool.execute(user_info, [userId]); // Note: pass as array
+    
+    if (result.length > 0) {
+      logger.info(`User info found for ID: ${userId}`);
+      
+      // Remove sensitive data if needed (like password)
+      const userData = { ...result[0] };
+      // delete userData.password; // Uncomment if you have password field
+      
+      return res.status(200).json({
+        success: true,
+        message: 'User info retrieved successfully',
+        data: userData
+      });
+    } else {
+      logger.warn(`No user found with ID: ${userId}`);
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+  } catch (error) {
+    logger.error('Error in getUserInfo:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
 module.exports = {
   authentication,
   verifyOTP,
   resendOTP,
-  logout
+  logout,
+  updateProfile,
+  getUserInfo
 };
