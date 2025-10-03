@@ -280,7 +280,11 @@ const verifyOTP = async (req, res) => {
       'UPDATE users SET is_verified = 1 WHERE user_id = ?',
       [userId]
     );
-
+    //get the userData 
+    const userData = await promisePool.execute(
+      'SELECT * FROM user_info  WHERE user_id = ?',
+      [userId]
+    )
     // Generate JWT token
     const token = auth.createToken({ 
       id: userId, 
@@ -305,7 +309,8 @@ const verifyOTP = async (req, res) => {
         user_id: userId,
         mobile_number: mobileNumber,
         country_code: countryCode || '+91',
-        is_verified: true
+        is_verified: true,
+        userData : userData[0][0] || null
       }
     });
 
@@ -378,7 +383,6 @@ const resendOTP = async (req, res) => {
       userId, 
       sessionId 
     });
-
     // Send new OTP via Twilio
     try {
       await twilioClient.messages.create({
