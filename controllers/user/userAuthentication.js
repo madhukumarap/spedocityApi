@@ -5,6 +5,7 @@ require('dotenv').config();
 
 // Initialize logger
 const logger = require('../../utils/logger'); // Adjust path as needed
+const { log } = require('winston');
 
 // Initialize Twilio client
 const twilioClient = twilio(
@@ -625,11 +626,127 @@ const getUserInfo = async (req, res) => {
     });
   }
 };
+const userAddress = async (req, res) => {
+//  {
+//   userId: 1,
+//   latitude: 12.5218157,
+//   address: 'Mandya, Karnataka, India'
+// }
+    try {
+      const {userId, latitude,langitude,address} = req.body;
+      logger.info(`The requestID for USER_ADDRESS IS ${userId}`);
+      if(!userId || !latitude || !langitude || !address){
+        return res.status(400).json({
+          success: false,
+          message: 'All fields are required'
+        });
+      }
+      if(isNaN(latitude) || isNaN(langitude)){
+        return res.status(400).json({
+          success: false,
+          message: 'Latitude and Longitude must be valid numbers'
+        });
+      }
+      const [addressExists] = await promisePool.execute(
+        'SELECT * FROM user_address WHERE user_id = ?  ',
+        [userId]);
+      if(addressExists.length >= 5){
+        return res.status(400).json({
+          success: false,
+          message: 'You can add maximum 5 addresses'
+        });
+      }
+      console.log(addressExists.length,"asghasghasghasghas");
+      const [insertAddress] = await promisePool.execute(
+        'INSERT INTO user_address (user_id, latitude, langitude, user_address) VALUES (?, ?, ?, ?)',
+        [userId, latitude, langitude, address]
+      );
+      console.log(insertAddress,"jhgsasghasgjhgsa");
+      logger.info('Address insertion attempted', { userId, latitude, langitude });
+      if(insertAddress.affectedRows === 1){
+        return res.status(200).json({
+          success: true,
+          message: 'Address added successfully'
+        });
+      }
+      logger.error('Failed to add address: No rows affected');
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to add address'
+      });
+    } catch (error) {
+      logger.error('Error in userAddress:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
+    }
+}
+const getUserAddress = async (req, res) => {
+  try {
+    const userId = req.query.userId;
+    logger.info(`The requestID for GET_USER_ADDRESS IS ${userId}`);
+    if(!userId){
+      return res.status(400).json({
+        success: false,
+        message: 'User ID is required'
+      });
+    }
+    const [addresses] = await promisePool.execute(
+      'SELECT * FROM user_address WHERE user_id = ?',
+      [userId]
+    );
+    return res.status(200).json({
+      success: true,
+      message: 'Addresses retrieved successfully',
+      data: addresses
+    });
+  } catch (error) {
+    logger.error('Error in getUserAddress:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+}
+const deleteUserAddress = async (req, res) => {
+  try {
+    const user_id = req.params.id;
+    const [deleteAddress] = await promisePool.execute(
+      'DELETE FROM user_address WHERE id = ?',
+      [user_id]
+    );
+    if(deleteAddress.affectedRows === 1){
+      logger.info('Address deleted successfully', { user_id });
+      return res.status(200).json({
+        success: true,
+        message: 'Address deleted successfully'
+      });
+    }
+    logger.warn('No address found to delete', { user_id });
+    return res.status(404).json({
+      success: false,
+      message: 'Address not found'
+    });
+  } catch (error) {
+    logger.error('Error in deleteUserAddress:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+}
 module.exports = {
   authentication,
   verifyOTP,
   resendOTP,
   logout,
   updateProfile,
-  getUserInfo
+  getUserInfo,
+  userAddress,
+  getUserAddress,
+  deleteUserAddress
 };
