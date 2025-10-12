@@ -1,6 +1,6 @@
 const express = require('express');
 const rateLimit = require('express-rate-limit');
-const { authentication, verifyOTP, resendOTP, logout, updateProfile, getUserInfo } = require('../../controllers/user/userAuthentication');
+const { authentication, verifyOTP, resendOTP, logout, updateProfile, getUserInfo, userAddress, getUserAddress,deleteUserAddress } = require('../../controllers/user/userAuthentication');
 const auth = require('../../middleware/authMiddleware');
 
 const router = express.Router();
@@ -27,5 +27,8 @@ router.post('/spedocity/verify-otp', verifyOTP); // Verify OTP
 router.post('/spedocity/resend-otp', resendOTP); // Resend OTP
 router.post('/spedocity/logout', auth.verifyToken, logout); // Logout
 router.post('/spedocity/update-profile', auth.verifyToken, updateProfile);
-router.get('/spedocity/get-user-info', auth.verifyToken, getUserInfo)
+router.get('/spedocity/get-user-info', auth.verifyToken, getUserInfo);
+router.post('/spedocity/user-address', auth.verifyToken, userAddress);
+router.get('/spedocity/getUser-address', auth.verifyToken, getUserAddress);
+router.delete('/spedocity/deleteUser-address/:id', auth.verifyToken, deleteUserAddress )
 module.exports = router;
