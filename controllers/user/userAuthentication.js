@@ -633,9 +633,9 @@ const userAddress = async (req, res) => {
 //   address: 'Mandya, Karnataka, India'
 // }
     try {
-      const {userId, latitude,langitude,address} = req.body;
+      const {userId, latitude,langitude,user_address} = req.body;
       logger.info(`The requestID for USER_ADDRESS IS ${userId}`);
-      if(!userId || !latitude || !langitude || !address){
+      if(!userId || !latitude || !langitude || !user_address){
         return res.status(400).json({
           success: false,
           message: 'All fields are required'
@@ -644,7 +644,7 @@ const userAddress = async (req, res) => {
       if(isNaN(latitude) || isNaN(langitude)){
         return res.status(400).json({
           success: false,
-          message: 'Latitude and Longitude must be valid numbers'
+          message: 'Latitude and Langitude must be valid numbers'
         });
       }
       const [addressExists] = await promisePool.execute(
@@ -659,7 +659,7 @@ const userAddress = async (req, res) => {
       console.log(addressExists.length,"asghasghasghasghas");
       const [insertAddress] = await promisePool.execute(
         'INSERT INTO user_address (user_id, latitude, langitude, user_address) VALUES (?, ?, ?, ?)',
-        [userId, latitude, langitude, address]
+        [userId, latitude, langitude, user_address]
       );
       console.log(insertAddress,"jhgsasghasgjhgsa");
       logger.info('Address insertion attempted', { userId, latitude, langitude });
@@ -739,6 +739,68 @@ const deleteUserAddress = async (req, res) => {
     });
   }
 }
+
+const updateUserAddress = async (req, res) => {
+  try {
+    const { id } = req.params; // address ID
+    const { latitude, langitude, user_address } = req.body;
+    const userId = req.user?.id; // from authMiddleware (decoded token)
+
+    logger.info(`Request to UPDATE_USER_ADDRESS for address ID: ${id} by user ID: ${userId}`);
+
+    // Validate input
+    if (!id || !user_address || !latitude || !langitude) {
+      return res.status(400).json({
+        success: false,
+        message: 'All fields (id, user_address, latitude, langitude) are required'
+      });
+    }
+
+    // Check if the address exists and belongs to the user
+    const [existingAddress] = await promisePool.execute(
+      'SELECT * FROM user_address WHERE id = ? AND user_id = ?',
+      [id, userId]
+    );
+
+    if (existingAddress.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Address not found or not authorized'
+      });
+    }
+
+    // Update the address
+    const [result] = await promisePool.execute(
+      `UPDATE user_address 
+       SET user_address = ?, latitude = ?, langitude = ? 
+       WHERE id = ? AND user_id = ?`,
+      [user_address, latitude, langitude, id, userId]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Failed to update address'
+      });
+    }
+
+    logger.info(`Address updated successfully for address ID: ${id}`);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Address updated successfully'
+    });
+
+  } catch (error) {
+    logger.error('Error in updateUserAddress:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
 module.exports = {
   authentication,
   verifyOTP,
@@ -748,5 +810,6 @@ module.exports = {
   getUserInfo,
   userAddress,
   getUserAddress,
+  updateUserAddress,
   deleteUserAddress
 };

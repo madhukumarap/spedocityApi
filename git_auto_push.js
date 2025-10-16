@@ -9,7 +9,7 @@ try {
     execSync(`git commit -m "${commitMessage}"`);
 
     // step 3: push changes to the remote repository
-    execSync('git push origin madhu');
+    execSync('git push origin mallik');
 
     console.log('Changes pushed to remote repository successfully.');
 } catch (error) {
